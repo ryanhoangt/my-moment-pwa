@@ -1,4 +1,7 @@
-var CACHE_STATIC_NAME = "static-v13";
+importScripts("/src/js/idb.js");
+importScripts("/src/js/util.js");
+
+var CACHE_STATIC_NAME = "static-v21";
 var CACHE_DYNAMIC_NAME = "dynamic-v2";
 var STATIC_FILES = [
   "/",
@@ -6,6 +9,8 @@ var STATIC_FILES = [
   "/offline.html",
   "/src/js/app.js",
   "/src/js/feed.js",
+  "/src/js/idb.js",
+  "/src/js/util.js",
   "/src/js/promise.js",
   "/src/js/fetch.js",
   "/src/js/material.min.js",
@@ -59,16 +64,23 @@ const isInArray = (requestURL, cacheArr) =>
 
 self.addEventListener("fetch", function (event) {
   // both implicitly-triggerred fetches and js fetches
-  var url = "https://httpbin.org/get";
+  var url =
+    "https://pwagram-7071e-default-rtdb.asia-southeast1.firebasedatabase.app/posts";
 
   if (event.request.url.indexOf(url) > -1) {
     event.respondWith(
-      caches.open(CACHE_DYNAMIC_NAME).then(function (cache) {
-        return fetch(event.request).then(function (res) {
-          //   trimCache(CACHE_DYNAMIC_NAME, 6);
-          cache.put(event.request, res.clone());
-          return res;
-        });
+      fetch(event.request).then(function (res) {
+        var resClone = res.clone();
+        clearAllData("posts")
+          .then(() => {
+            return resClone.json();
+          })
+          .then((data) => {
+            for (var key in data) {
+              writeData("posts", data[key]);
+            }
+          });
+        return res;
       })
     );
   } else if (
