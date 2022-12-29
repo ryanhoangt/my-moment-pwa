@@ -4,10 +4,16 @@ var dbPromise = idb.open("posts-store", 1, function (db) {
       keyPath: "id",
     });
   }
+
+  if (!db.objectStoreNames.contains("sync-posts")) {
+    db.createObjectStore("sync-posts", {
+      keyPath: "id",
+    });
+  }
 });
 
 function writeData(storeName, data) {
-  dbPromise.then(function (db) {
+  return dbPromise.then(function (db) {
     var tx = db.transaction(storeName, "readwrite");
     var store = tx.objectStore(storeName);
     store.put(data);
@@ -32,15 +38,15 @@ function clearAllData(storeName) {
   });
 }
 
-// function deleteItemFromData(storeName, id) {
-//   return dbPromise
-//     .then((db) => {
-//       var tx = db.transaction(storeName, "readwrite");
-//       var store = tx.objectStore(storeName);
-//       store.delete(id);
-//       return tx.complete;
-//     })
-//     .then(() => {
-//       console.log("Item deleted");
-//     });
-// }
+function deleteItemFromData(storeName, id) {
+  return dbPromise
+    .then((db) => {
+      var tx = db.transaction(storeName, "readwrite");
+      var store = tx.objectStore(storeName);
+      store.delete(id);
+      return tx.complete;
+    })
+    .then(() => {
+      console.log("Item deleted");
+    });
+}

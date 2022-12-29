@@ -1,7 +1,7 @@
 importScripts("/src/js/idb.js");
 importScripts("/src/js/util.js");
 
-var CACHE_STATIC_NAME = "static-v21";
+var CACHE_STATIC_NAME = "static-v24";
 var CACHE_DYNAMIC_NAME = "dynamic-v2";
 var STATIC_FILES = [
   "/",
@@ -167,3 +167,45 @@ self.addEventListener("fetch", function (event) {
 //       })
 //   );
 // });
+
+self.addEventListener("sync", (event) => {
+  console.log("[SW] Background syncing:", event);
+
+  if (event.tag === "sync-new-post") {
+    console.log("[SW] Syncing new posts...");
+    event.waitUntil(
+      readAllData("sync-posts").then((data) => {
+        for (var savedPost of data) {
+          const savedPostClone = { ...savedPost }; // closure issue with variables in outer loop
+          fetch(
+            "https://pwagram-7071e-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+              body: JSON.stringify({
+                id: savedPostClone.id,
+                title: savedPostClone.title,
+                location: savedPostClone.location,
+                image: savedPostClone.image,
+              }),
+            }
+          )
+            .then((res) => {
+              console.log("Send data:", res);
+
+              // clear posts in indexedDB
+              if (res.ok) {
+                deleteItemFromData("sync-posts", savedPostClone.id);
+              }
+            })
+            .catch((err) => {
+              console.log("Error while trying to sending data:", err);
+            });
+        }
+      })
+    );
+  }
+});

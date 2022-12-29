@@ -4,6 +4,9 @@ var closeCreatePostModalButton = document.querySelector(
   "#close-create-post-modal-btn"
 );
 var sharedMomentsArea = document.querySelector("#shared-moments");
+var form = document.querySelector("form");
+var titleInput = document.querySelector("#title");
+var locationInput = document.querySelector("#location");
 
 function openCreatePostModal() {
   createPostArea.style.display = "block";
@@ -131,3 +134,62 @@ if ("indexedDB" in window) {
 //       }
 //     });
 // }
+
+function sendData() {
+  fetch(
+    "https://pwagram-7071e-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        id: new Date().toISOString(),
+        title: titleInput.value,
+        location: locationInput.value,
+        image:
+          "https://firebasestorage.googleapis.com/v0/b/pwagram-7071e.appspot.com/o/sf-boat.jpg?alt=media&token=e54e0794-661f-493c-af85-61e5e7e0769d",
+      }),
+    }
+  ).then((res) => {
+    console.log("Send data:", res);
+    updateUI();
+  });
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  if (titleInput.value.trim() === "" || locationInput.value.trim() === "") {
+    alert("Please enter valid data");
+    return;
+  }
+
+  closeCreatePostModal();
+
+  if ("serviceWorker" in navigator && "SyncManager" in window) {
+    navigator.serviceWorker.ready.then((sw) => {
+      var post = {
+        id: new Date().toISOString(),
+        title: titleInput.value,
+        location: locationInput.value,
+      };
+
+      writeData("sync-posts", post)
+        .then(() => {
+          return sw.sync.register("sync-new-post");
+        })
+        .then(() => {
+          var snackbarContainer = document.querySelector("#confirmation-toast");
+          var data = { message: "Your post was saved for syncing!" };
+          snackbarContainer.MaterialSnackbar.showSnackbar(data);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    });
+  } else {
+    sendData();
+  }
+});
