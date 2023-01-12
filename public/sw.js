@@ -1,8 +1,8 @@
 importScripts("/src/js/idb.js");
 importScripts("/src/js/util.js");
 
-var CACHE_STATIC_NAME = "static-v24";
-var CACHE_DYNAMIC_NAME = "dynamic-v2";
+var CACHE_STATIC_NAME = "static-v25";
+var CACHE_DYNAMIC_NAME = "dynamic-v3";
 var STATIC_FILES = [
   "/",
   "/index.html",
@@ -209,3 +209,75 @@ self.addEventListener("sync", (event) => {
     );
   }
 });
+
+self.addEventListener("notificationclick", (event) => {
+  var notification = event.notification;
+  var action = event.action;
+
+  //   console.log(notification);
+
+  if (action === "confirm") {
+    console.log("Confirm was chosen!");
+
+    // OPEN NEW PAGE
+    event.waitUntil(
+      self.clients.matchAll().then(
+        // for all clients of the SW
+        (clis) => {
+          var client = clis.find((cli) => cli.visibilityState === "visible");
+
+          // there is a tab openning
+          if (client !== undefined) {
+            client.navigate(notification.data.openUrl);
+            client.focus();
+          } else {
+            // open a new tab
+            self.clients.openWindow(notification.data.openUrl);
+          }
+        }
+      )
+    );
+  } else {
+    console.log(action); // cancel + any other events
+  }
+
+  notification.close();
+});
+
+// triggers when the user actively dismisses the notification
+// useful to send analytical infomation (why users ignore...)
+self.addEventListener("notificationclose", (event) => {
+  console.log("Notification was closed:", event);
+});
+
+// ==================================================
+// Before listening to push noti, make sure to
+// implement push noti feature on server side.
+// ==================================================
+
+self.addEventListener("push", (event) => {
+  // console.log("Push notification received!");
+
+  var data = { title: "New!", content: "Something happened!", toOpenUrl: "/" };
+
+  if (event.data) {
+    data = JSON.parse(event.data.text());
+  }
+
+  // send notification to user's browser
+  var options = {
+    body: data.content,
+    icon: "/src/images/icons/app-icon-96x96.png", // this can be received through noti payload as image url
+    badge: "/src/images/icons/app-icon-96x96.png",
+    data: {
+      openUrl: data.toOpenUrl,
+    },
+  };
+
+  event.waitUntil(
+    // get the registration to show noti, not the sw itself. The SW is listening to event.
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// REMINDER: make sure not to CLEAR SITE DATA as it will invalidate the subsciption.
