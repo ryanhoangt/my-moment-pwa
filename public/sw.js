@@ -1,7 +1,7 @@
 importScripts("/src/js/idb.js");
 importScripts("/src/js/util.js");
 
-var CACHE_STATIC_NAME = "static-v25";
+var CACHE_STATIC_NAME = "static-v26";
 var CACHE_DYNAMIC_NAME = "dynamic-v3";
 var STATIC_FILES = [
   "/",
@@ -176,21 +176,22 @@ self.addEventListener("sync", (event) => {
     event.waitUntil(
       readAllData("sync-posts").then((data) => {
         for (var savedPost of data) {
-          const savedPostClone = { ...savedPost }; // closure issue with variables in outer loop
+          //   const savedPostClone = { ...savedPost }; // closure issue with variables in outer loop
+
+          var postData = new FormData();
+          postData.append("id", postData.id);
+          postData.append("title", postData.title);
+          postData.append("location", postData.location);
+          postData.append("rawLocationLat", postData.rawLocation.lat);
+          postData.append("rawLocationLng", postData.rawLocation.lng);
+          postData.append("imageFile", postData.picture, postData.id + ".png");
+
           fetch(
-            "https://pwagram-7071e-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+            // "https://pwagram-7071e-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+            "endpoint_on_server_or_cloud_function_to_store_post_as_form_data",
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-              body: JSON.stringify({
-                id: savedPostClone.id,
-                title: savedPostClone.title,
-                location: savedPostClone.location,
-                image: savedPostClone.image,
-              }),
+              body: postData,
             }
           )
             .then((res) => {
